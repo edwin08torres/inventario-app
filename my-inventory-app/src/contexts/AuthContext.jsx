@@ -1,16 +1,22 @@
-/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
-import { createContext, useState } from "react";
-import { setToken, getToken, removeToken } from "../services/localstorage";
+import { createContext, useState, useEffect } from 'react';
+import { getToken, setToken, removeToken } from '../services/localstorage';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
-  const handleLogin = ({ token, user }) => {
-    setToken(token);
-    setUser(user);
+  useEffect(() => {
+    const storedToken = getToken();
+    if (storedToken) {
+      // Intenta decodificar o validar
+    }
+  }, []);
+
+  const handleLogin = (data) => {
+    setToken(data.token);
+    setUser(data.user);
   };
 
   const handleLogout = () => {

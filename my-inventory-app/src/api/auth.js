@@ -1,25 +1,29 @@
 /* eslint-disable no-useless-catch */
 import axios from "axios";
 
-export const login = async (username, password) => {
+const baseURL = "http://localhost:4000";
 
-  //harcodeado
-  const mockToken = "abc123";
+export const login = async (username, password) => {
   try {
-    const { data: users } = await axios.get("http://localhost:4000/users");
-    const user = users.find(
-      (u) => u.username === username && u.password === password
+    // Buscar usuarios que tengan ese username y password
+    const { data: users } = await axios.get(
+      `${baseURL}/users?username=${username}&password=${password}`
     );
 
-    if (!user) {
+    if (users.length === 0) {
+      // No existe user con esas credenciales
       throw new Error("Credenciales incorrectas");
     }
+
+    const user = users[0];
     if (!user.enabled) {
       throw new Error("Usuario deshabilitado");
     }
-    // Retornamos token mock y rol del usuario
+
+    //harcodeado
+    const token = "fakeJWTToken123";
     return {
-      token: mockToken,
+      token,
       user: {
         id: user.id,
         username: user.username,
@@ -27,7 +31,7 @@ export const login = async (username, password) => {
         enabled: user.enabled,
       },
     };
-  } catch (err) {
-    throw err;
+  } catch (error) {
+    throw error;
   }
 };
