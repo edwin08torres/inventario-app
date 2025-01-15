@@ -1,0 +1,35 @@
+{
+    "users": [
+      {
+        "id": 1,
+        "username": "admin",
+        "password": "admin123",
+        "role": "admin",
+        "enabled": true
+      },
+      {
+        "id": 2,
+        "username": "john",
+        "password": "john123",
+        "role": "user",
+        "enabled": true
+      }
+    ],
+    "categories": [
+      {
+        "id": 1,
+        "name": "Electrónicos",
+        "description": "Artículos electrónicos"
+      }
+    ],
+    "products": [
+      {
+        "id": 1,
+        "name": "Laptop",
+        "categoryId": 1,
+        "price": 1000,
+        "stock": 10
+      }
+    ]
+  }
+  
