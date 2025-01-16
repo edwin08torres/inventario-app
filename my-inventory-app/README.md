@@ -1,5 +1,5 @@
 Inventario React App
-Este proyecto es una aplicación de inventario hecha con React (versión 18+) y usando JSON Server para simular el backend. Incluye un sistema de autenticación (mock con JWT), manejo de roles (admin/user), y diferentes módulos para CRUD de Usuarios, Categorías y Productos.
+Este proyecto es una aplicación de inventario hecha con React y usando JSON Server para simular el backend. Incluye un sistema de autenticación, manejo de roles (admin/user), y diferentes módulos para CRUD de Usuarios, Categorías y Productos.
 
 
 Tabla de Contenido
