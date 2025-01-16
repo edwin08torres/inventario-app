@@ -5,13 +5,11 @@ const baseURL = "http://localhost:4000";
 
 export const login = async (username, password) => {
   try {
-    // Buscar usuarios que tengan ese username y password
     const { data: users } = await axios.get(
       `${baseURL}/users?username=${username}&password=${password}`
     );
 
     if (users.length === 0) {
-      // No existe user con esas credenciales
       throw new Error("Credenciales incorrectas");
     }
 

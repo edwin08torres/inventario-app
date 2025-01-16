@@ -3,11 +3,13 @@ import React, { useState, useContext } from "react";
 import { AuthContext } from "../../contexts/AuthContext";
 import { toast } from "react-toastify";
 import { login as loginService } from "../../api/auth";
+import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
   const { handleLogin } = useContext(AuthContext);
   const [form, setForm] = useState({ username: "", password: "" });
-
+  const navigate = useNavigate(); // Hook de React Router
+  
   const onChange = (e) => {
     setForm({
       ...form,
@@ -19,12 +21,15 @@ const LoginPage = () => {
     e.preventDefault();
     try {
       const response = await loginService(form.username, form.password);
-      handleLogin(response); // Guardas token y user en AuthContext
+      handleLogin(response); 
       toast.success("Sesión iniciada exitosamente!");
+      // Redirigir al Home ("/" en este caso)
+      navigate("/");
     } catch (error) {
       toast.error(error.message);
     }
   };
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">

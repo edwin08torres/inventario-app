@@ -1,35 +1,60 @@
 {
-    "users": [
-      {
-        "id": 1,
-        "username": "admin",
-        "password": "admin123",
-        "role": "admin",
-        "enabled": true
-      },
-      {
-        "id": 2,
-        "username": "john",
-        "password": "john123",
-        "role": "user",
-        "enabled": true
-      }
-    ],
-    "categories": [
-      {
-        "id": 1,
-        "name": "Electrónicos",
-        "description": "Artículos electrónicos"
-      }
-    ],
-    "products": [
-      {
-        "id": 1,
-        "name": "Laptop",
-        "categoryId": 1,
-        "price": 1000,
-        "stock": 10
-      }
-    ]
-  }
-  
+  "users": [
+    {
+      "username": "admin",
+      "password": "admin123",
+      "role": "admin",
+      "enabled": true,
+      "id": "1"
+    },
+    {
+      "username": "john",
+      "password": "john123",
+      "role": "user",
+      "enabled": true,
+      "id": "2"
+    },
+    {
+      "username": "Pepe",
+      "password": "pepe123",
+      "role": "user",
+      "enabled": true,
+      "id": "4941"
+    }
+  ],
+  "categories": [
+    {
+      "name": "Electrónicos",
+      "description": "Artículos electrónica",
+      "id": "1"
+    },
+    {
+      "id": "2",
+      "name": "Muebles",
+      "description": "Producto de decoracion"
+    }
+  ],
+  "products": [
+    {
+      "name": "Sofa",
+      "categoryId": 2,
+      "price": "10001",
+      "stock": "100",
+      "id": "6352"
+    },
+    {
+      "id": "9913",
+      "name": "Laptop",
+      "categoryId": 1,
+      "price": "1233",
+      "stock": "1222"
+    },
+    {
+      "id": "e997",
+      "name": "Microondas",
+      "categoryId": "1",
+      "price": "1222",
+      "stock": "11"
+    }
+  ]
+}
