@@ -29,7 +29,7 @@ const Layout = ({ children }) => {
   return (
     <div className="flex h-screen">
       <button
-        className="absolute top-1 left-1 lg:hidden z-20 
+        className="absolute top-1 left-1 lg:hidden z-40 
                    bg-blue-600 text-white p-2 rounded"
         onClick={toggleSidebar}
       >
@@ -45,6 +45,7 @@ const Layout = ({ children }) => {
           transform top-0 left-0 w-64 h-full fixed
           lg:static lg:flex-shrink-0
           transition-transform duration-200
+          z-30
         `}
       >
         {/* Navegación lateral */}
@@ -75,7 +76,7 @@ const Layout = ({ children }) => {
       </aside>
 
       {/* Contenido principal */}
-      <main className="flex-1 mt-6 bg-gray-100 ml-0">
+      <main className="flex-1 bg-gray-100 ml-0">
         {children}
       </main>
     </div>
