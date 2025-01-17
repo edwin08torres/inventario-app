@@ -7,7 +7,7 @@ import HomePage from "../components/pages/Home";
 import UsersPage from "../components/pages/Users";
 import CategoriesPage from "../components/pages/Categories";
 import ProductsPage from "../components/pages/Products";
-import Layout from "../components/layout/Layout"; // tu layout (opcional)
+import Layout from "../components/layout/layout"; // tu layout (opcional)
 
 const PrivateRoute = ({ children }) => {
   const { user } = useContext(AuthContext);
