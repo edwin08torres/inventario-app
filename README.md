@@ -44,7 +44,7 @@ Este proyecto es una aplicación de inventario desarrollada con **React** y usan
 ```bash
 # Clona el repositorio y accede a la carpeta
 git clone https://github.com/edwin08torres/inventario-app.git
-cd inventario-app
+cd my-inventory-app
 
 Instalar dependencias:
     # Instala las dependencias necesarias
