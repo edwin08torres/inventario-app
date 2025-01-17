@@ -147,7 +147,7 @@ const UsersPage = () => {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Gestión de Usuarios</h2>
+      <h2 className="text-2xl font-bold mb-4 text-center">Gestión de Usuarios</h2>
 
       {/* Barra de búsqueda */}
       <div className="flex space-x-2 mb-4">

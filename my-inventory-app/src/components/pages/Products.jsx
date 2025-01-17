@@ -167,7 +167,7 @@ const ProductsPage = () => {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Gestión de Productos</h2>
+      <h2 className="text-2xl font-bold mb-4 text-center">Gestión de Productos</h2>
 
       {/* Barra de búsqueda */}
       <div className="flex space-x-2 mb-4">

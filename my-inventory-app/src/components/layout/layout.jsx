@@ -49,7 +49,7 @@ const Layout = ({ children }) => {
         `}
       >
         {/* Navegación lateral */}
-        <nav className="flex flex-col p-4 mt-10 md:mt-0">
+        <nav className="flex flex-col p-4 mt-10 md:mt-10">
           <Link to="/" className="py-2 hover:bg-gray-700 rounded">
             Inicio
           </Link>
