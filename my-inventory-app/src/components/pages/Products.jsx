@@ -1,81 +1,45 @@
-/* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useContext } from "react";
-import axios from "axios";
 import { AuthContext } from "../../contexts/AuthContext";
 import { toast } from "react-toastify";
-
-const baseURL = "/api/Products";
-
-function Modal({ children, onClose }) {
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded relative min-w-[300px]">
-        <button
-          className="absolute top-2 right-2 text-xl font-bold"
-          onClick={onClose}
-        >
-          ✕
-        </button>
-        {children}
-      </div>
-    </div>
-  );
-}
+import {
+  getProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+} from "../../api/products";
+import { getAllCategories } from "../../api/categories";
 
 const ProductsPage = () => {
   const { user } = useContext(AuthContext);
 
   const [allProducts, setAllProducts] = useState([]);
   const [products, setProducts] = useState([]);
-
   const [categories, setCategories] = useState([]);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [search, setSearch] = useState("");
-
   const [form, setForm] = useState({
     name: "",
-    categoryId: 0,
+    categoryId: "",
     price: 0,
     stock: 0,
   });
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
 
+  // Paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
 
-  // Modal
-  const [showModal, setShowModal] = useState(false);
-
-  const totalItems = products.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentData = products.slice(startIndex, endIndex);
-
-  const nextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-  const prevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  // Carga inicial
   useEffect(() => {
-    fetchAllProducts();
+    fetchProducts();
     fetchCategories();
   }, []);
 
-  const fetchAllProducts = async () => {
+  const fetchProducts = async () => {
     try {
-      const { data } = await axios.get(baseURL);
+      const data = await getProducts();
       setAllProducts(data);
       setProducts(data);
-      setCurrentPage(1);
     } catch (error) {
       toast.error("Error al cargar productos");
     }
@@ -83,7 +47,7 @@ const ProductsPage = () => {
 
   const fetchCategories = async () => {
     try {
-      const { data } = await axios.get("/api/categories"); 
+      const data = await getAllCategories();
       setCategories(data);
     } catch (error) {
       toast.error("Error al cargar categorías");
@@ -99,90 +63,74 @@ const ProductsPage = () => {
     const filtered = allProducts.filter((p) =>
       p.name.toLowerCase().includes(lowerTerm)
     );
+
     if (filtered.length === 0) {
       toast.error("Producto no encontrado");
     } else {
-      toast.success("Producto encontrado");
+      toast.success("Producto(s) encontrado(s)");
       setProducts(filtered);
       setCurrentPage(1);
     }
   };
 
-  // Handlers de búsqueda
-  const handleSearchChange = (e) => {
-    setSearch(e.target.value);
-  };
-  const handleSearchClick = () => {
-    filterProducts(search);
-  };
+  const handleSearchChange = (e) => setSearch(e.target.value);
+
+  const handleSearchClick = () => filterProducts(search);
+
   const handleClearFilter = () => {
     setSearch("");
     setProducts(allProducts);
     setCurrentPage(1);
   };
 
-  // Abrir modal (Crear)
-  const openCreateModal = () => {
-    setEditingProduct(null);
-    setForm({ name: "", categoryId: 0, price: 0, stock: 0 });
-    setShowModal(true);
-  };
-
-  // Abrir modal (Editar)
-  const handleEdit = (prod) => {
-    setEditingProduct(prod);
+  const handleEdit = (product) => {
+    setEditingProduct(product);
     setForm({
-      name: prod.name,
-      categoryId: prod.categoryId,
-      price: prod.price,
-      stock: prod.stock,
+      name: product.name,
+      categoryId: product.categoryId,
+      price: product.price,
+      stock: product.stock,
     });
     setShowModal(true);
   };
 
-  // Cerrar Modal
-  const closeModal = () => {
-    setShowModal(false);
-  };
-
   const handleCancel = () => {
     setEditingProduct(null);
-    setForm({ name: "", categoryId: 0, price: 0, stock: 0 });
+    setForm({ name: "", categoryId: "", price: 0, stock: 0 });
     setShowModal(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { name, categoryId, price, stock } = form;
 
-    // Validaciones mínimas
-    if (!name.trim() || !categoryId) {
-      toast.error("Campos requeridos vacíos");
+    // Validaciones
+    if (!form.name.trim()) {
+      toast.error("El nombre del producto no puede estar vacío");
       return;
     }
-    if (price < 0) {
-      toast.error("El precio no puede ser negativo");
+    if (!form.categoryId) {
+      toast.error("Debes seleccionar una categoría");
       return;
     }
-    if (stock < 0) {
+    if (form.price <= 0) {
+      toast.error("El precio debe ser mayor que 0");
+      return;
+    }
+    if (form.stock < 0) {
       toast.error("El stock no puede ser negativo");
       return;
     }
 
     try {
       if (editingProduct) {
-        // PUT -> editar
-        await axios.put(`${baseURL}/${editingProduct.id}`, form);
+        await updateProduct(editingProduct.id, form);
         toast.success("Producto actualizado");
       } else {
-        // POST -> crear
-        await axios.post(baseURL, form);
+        await createProduct(form);
         toast.success("Producto creado");
       }
-      await fetchAllProducts();
-      setShowModal(false);
-      setEditingProduct(null);
-      setForm({ name: "", categoryId: 0, price: 0, stock: 0 });
+      fetchProducts();
+      handleCancel();
     } catch (error) {
       toast.error("Error al guardar el producto");
     }
@@ -191,19 +139,31 @@ const ProductsPage = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("¿Eliminar este producto?")) return;
     try {
-      await axios.delete(`${baseURL}/${id}`);
+      await deleteProduct(id);
       toast.success("Producto eliminado");
-      await fetchAllProducts();
+      fetchProducts();
     } catch (error) {
-      toast.error("Error al eliminar producto");
+      toast.error("Error al eliminar el producto");
     }
   };
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  // Paginación lógica
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+  const displayedProducts = products.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
   };
 
-  if (!user) return null; 
+  const handleItemsPerPageChange = (e) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1);
+  };
 
   return (
     <div className="p-6">
@@ -230,32 +190,17 @@ const ProductsPage = () => {
         >
           Borrar Filtro
         </button>
-      </div>
 
-      <div className="mb-4 flex items-center space-x-2">
-        <label>Items por página:</label>
-        <select
-          value={itemsPerPage}
-          onChange={(e) => {
-            setItemsPerPage(Number(e.target.value));
-            setCurrentPage(1);
-          }}
-        >
-          <option value={5}>5</option>
-          <option value={10}>10</option>
-        </select>
-      </div>
-
-      {/* Botón Crear (solo admin) */}
-      {user?.role === "admin" && (
+        {/* Botón para abrir el modal */}
         <button
-          onClick={openCreateModal}
-          className="mb-4 px-3 py-1 bg-green-600 text-white rounded"
+          onClick={() => setShowModal(true)}
+          className="px-4 py-2 bg-green-500 text-white rounded"
         >
           Crear Producto
         </button>
-      )}
+      </div>
 
+      {/* Tabla de productos */}
       <table className="min-w-full bg-white rounded shadow mb-8">
         <thead>
           <tr className="border-b">
@@ -268,9 +213,10 @@ const ProductsPage = () => {
           </tr>
         </thead>
         <tbody>
-          {currentData.map((p) => {
+          {displayedProducts.map((p) => {
             const categoryName =
-              categories.find((c) => c.id === p.categoryId)?.name || "";
+              categories.find((c) => c.id === p.categoryId)?.name ||
+              "Sin Categoría";
             return (
               <tr key={p.id} className="border-b hover:bg-gray-50">
                 <td className="px-4 py-2">{p.id}</td>
@@ -300,110 +246,126 @@ const ProductsPage = () => {
         </tbody>
       </table>
 
-      {/* Botones de paginación */}
-      <div className="flex items-center mb-4 space-x-4">
-        <button
-          onClick={prevPage}
-          disabled={currentPage === 1}
-          className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
-        >
-          Anterior
-        </button>
-        <span>
-          Página {currentPage} de {totalPages}
-        </span>
-        <button
-          onClick={nextPage}
-          disabled={currentPage === totalPages || totalPages === 0}
-          className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
-        >
-          Siguiente
-        </button>
+      {/* Paginación */}
+      <div className="mb-4 flex justify-between items-center">
+        <div>
+          <label className="mr-2 font-medium">Items por página:</label>
+          <select
+            value={itemsPerPage}
+            onChange={handleItemsPerPageChange}
+            className="border rounded px-2 py-1"
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+          </select>
+        </div>
+        <div>
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-3 py-1 bg-gray-300 rounded"
+          >
+            Anterior
+          </button>
+          <span className="mx-2">
+            Página {currentPage} de {totalPages}
+          </span>
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 bg-gray-300 rounded"
+          >
+            Siguiente
+          </button>
+        </div>
       </div>
 
-      {/* Modal de Crear/Editar */}
+      {/* Modal */}
       {showModal && (
-        <Modal onClose={closeModal}>
-          <h3 className="text-xl font-bold mb-4">
-            {editingProduct ? "Editar Producto" : "Nuevo Producto"}
-          </h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block mb-1 font-medium text-gray-700">
-                Nombre
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                className="border w-full px-3 py-2 rounded"
-                required
-              />
-            </div>
-            <div>
-              <label className="block mb-1 font-medium text-gray-700">
-                Categoría
-              </label>
-              <select
-                name="categoryId"
-                value={form.categoryId}
-                onChange={handleChange}
-                className="border w-full px-3 py-2 rounded"
-                required
-              >
-                <option value={0}>Seleccione</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block mb-1 font-medium text-gray-700">
-                Precio
-              </label>
-              <input
-                type="number"
-                name="price"
-                min="0"
-                value={form.price}
-                onChange={handleChange}
-                className="border w-full px-3 py-2 rounded"
-                required
-              />
-            </div>
-            <div>
-              <label className="block mb-1 font-medium text-gray-700">
-                Stock
-              </label>
-              <input
-                type="number"
-                name="stock"
-                min="0"
-                value={form.stock}
-                onChange={handleChange}
-                className="border w-full px-3 py-2 rounded"
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-green-600 text-white rounded"
-              >
-                {editingProduct ? "Actualizar" : "Crear"}
-              </button>
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="px-4 py-2 bg-gray-500 text-white rounded"
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
-        </Modal>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded shadow max-w-md w-full">
+            <h3 className="text-xl font-bold mb-4">
+              {editingProduct ? "Editar Producto" : "Nuevo Producto"}
+            </h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block mb-1 font-medium text-gray-700">
+                  Nombre
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className="border w-full px-3 py-2 rounded"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block mb-1 font-medium text-gray-700">
+                  Categoría
+                </label>
+                <select
+                  name="categoryId"
+                  value={form.categoryId}
+                  onChange={(e) =>
+                    setForm({ ...form, categoryId: e.target.value })
+                  }
+                  className="border w-full px-3 py-2 rounded"
+                  required
+                >
+                  <option value="">Seleccione</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-1 font-medium text-gray-700">
+                  Precio
+                </label>
+                <input
+                  type="number"
+                  name="price"
+                  value={form.price}
+                  onChange={(e) => setForm({ ...form, price: e.target.value })}
+                  className="border w-full px-3 py-2 rounded"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block mb-1 font-medium text-gray-700">
+                  Stock
+                </label>
+                <input
+                  type="number"
+                  name="stock"
+                  value={form.stock}
+                  onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                  className="border w-full px-3 py-2 rounded"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="px-4 py-2 bg-gray-500 text-white rounded"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-600 text-white rounded"
+                >
+                  Guardar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
