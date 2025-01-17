@@ -1,117 +1,118 @@
-Inventario React App
-Este proyecto es una aplicación de inventario hecha con React y usando JSON Server para simular el backend. Incluye un sistema de autenticación, manejo de roles (admin/user), y diferentes módulos para CRUD de Usuarios, Categorías y Productos.
+# 📦 Inventario React App
+
+Este proyecto es una aplicación de inventario desarrollada con **React** y usando **MockAPI.IO** para simular el backend. Incluye un sistema de autenticación, manejo de roles (admin/user) y módulos para gestionar usuarios, categorías y productos.
+
+---
+
+## 📑 Tabla de Contenido
+
+1. [Características Principales](#características-principales)
+2. [Instalación y Configuración](#instalación-y-configuración)
+3. [Ejecución en Desarrollo](#ejecución-en-desarrollo)
+4. [Uso de la Aplicación](#uso-de-la-aplicación)
+5. [Descripción de Módulos](#descripción-de-módulos)
+6. [Notas sobre Autenticación](#notas-sobre-autenticación)
+7. [Despliegue](#despliegue)
+8. [Contacto](#contacto)
+
+---
+
+## ✨ Características Principales
+
+- 🔑 **Login**: Simulado con JWT y token almacenado en `localStorage`.
+- 👤 **Roles**:
+  - **Admin**: CRUD completo en todos los módulos.
+  - **User**: Solo visualización.
+- 🚪 **Control de Sesión**:
+  - Usuarios deshabilitados no pueden acceder.
+  - Solo los admins pueden gestionar usuarios, productos, etc.
+- 📋 **Módulos CRUD**:
+  - **Usuarios**: Crear, editar, habilitar/deshabilitar, cambiar roles.
+  - **Categorías**: Crear, editar, eliminar, listar.
+  - **Productos**: Crear, editar, eliminar, listar con relación a categorías.
+- 🔍 **Búsqueda**: Filtros locales en cada módulo.
+- 📢 **Notificaciones**: Usando `react-toastify`.
+- 📱 **Responsive**: Sidebar desplegable en pantallas pequeñas.
+- 🛠 **Tecnologías**: React 18+, Tailwind CSS, JSON Server, React Router, Axios.
+
+---
+
+## 🛠 Instalación y Configuración
+
+1. **Clonar el repositorio**:
+
+```bash
+# Clona el repositorio y accede a la carpeta
+git clone https://github.com/edwin08torres/inventario-app.git
+cd inventario-app
+
+Instalar dependencias:
+    # Instala las dependencias necesarias
+    npm install
+
+🚀 Ejecución en Desarrollo
+    Ejecutar la aplicación React: npm run dev
+        Abre http://localhost:5173 (o el puerto que se indique) en tu navegador.
+        💡 Nota: Puedes ajustar los puertos según la configuración de tu entorno.
 
 
-Tabla de Contenido
-1-Características Principales
-2-Instalación y Configuración
-3-Ejecución en Desarrollo
-4-Uso de la Aplicación
-5-Descripción de Módulos
-6-Notas sobre Autenticación
-7-Despliegue
-8-Contacto
+💻 Uso de la Aplicación
+    🔑 Login
+        Ve a http://localhost:5173/login.
+        Ingresa credenciales existentes del db.json (p. ej., username: admin, password: admin123).
+        Si es exitoso, serás redirigido al Home.
+    🧭 Navegación
+        Sidebar: Incluye enlaces a los módulos de Usuarios, Categorías y Productos.
+        Pantallas pequeñas: Usa el botón “Menú” para desplegar/ocultar el sidebar.
+    ✏️ Crear / Editar / Eliminar
+        Los admins tienen acceso completo al CRUD.
+        Los users solo pueden visualizar datos.
+    🔍 Filtrar
+        Cada módulo incluye una caja de búsqueda y botón Buscar.
+        Usa el botón Borrar Filtro para restablecer.
+    🚪 Logout
+        Haz clic en el botón Logout para cerrar sesión, borrar el token y redirigir a la página de login.
 
-Características Principales
-    Login (simulado con JWT) y guardado de token en localStorage.
-    Roles: admin y user.
-    Control de Sesión:
-        Sólo los usuarios admin pueden crear/editar/eliminar otros usuarios, productos, etc.
-        Usuarios disabled no pueden acceder.
-    Módulos CRUD:
-        Usuarios: crear, editar, habilitar/deshabilitar, cambiar rol.
-        Categorías: crear, editar, eliminar, listar.
-        Productos: crear, editar, eliminar, listar, con relación a categorías.
-    Búsqueda en cada módulo (filtro local o con JSON Server).
-    Notificaciones (usando react-toastify).
-    Responsive (Sidebar desplegable en pantallas pequeñas).
-    Tecnologías: React 18+, Tailwind CSS, JSON Server, React Router, Axios, etc.
+🗂 Descripción de Módulos
+    🔒 Autenticación (LoginPage)
+        Simula un JWT almacenado en localStorage.
+        Valida credenciales (username/password) contra db.json.
+        Usuarios deshabilitados (enabled: false) no pueden iniciar sesión.
 
-Instalación y Configuración
-    1- Clonar el repositorio:
-        git clone https://github.com/edwin08torres/inventario-app.git
-        cd my-inventory-app
-    2- Instalar dependencias:
-        npm install
-    Esto instalará las librerías de React, React Router, Axios, JSON Server, Tailwind, etc.
-    3-Configurar JSON Server:
-        *Verifica que tengas instalado json-server globalmente (opcional) o que esté incluido en devDependencies.
-        *En la raíz del proyecto, existe un archivo db.json que simula la base de datos.
-       
-Ejecución en Desarrollo
-    *Levantar JSON Server:        
-        json-server --watch db.json --port 4000
-    *Ejecutar la aplicación React:
-        npm run dev
-    Abre http://localhost:5173 (por defecto) para ver la aplicación.
-
-    Nota: puedes cambiar el puerto si tu Vite/React App lo pone en otro, o si tu JSON Server corre en otro puerto.
-
-Uso de la Aplicación
-Login:
-    Ve a http://localhost:5173/login.
-    Ingresa credenciales existentes en db.json (p. ej. "username": "admin", "password": "admin123").
-    Si la autenticación es exitosa, redirige al Home.
-
-    Navegación:
-    El layout incluye un sidebar (menú lateral) con enlaces a Usuarios, Categorías y Productos.
-    En pantallas pequeñas, el botón “Menú” despliega/oculta el sidebar.
-
-    Crear / Editar / Eliminar:
-    Como admin, puedes hacer CRUD completo.
-    Como user, solo visualizas (sin acciones de edición).
-
-    Filtrar:
-    Cada módulo tiene una caja de búsqueda + botón “Buscar”, y/o un botón “Borrar Filtro” para mostrar todos.
-    
-    Logout:
-    El botón “Logout” (ubicado en el layout o sidebar) cierra la sesión, borra el token y redirige a /login.
-
-Descripción de Módulos
-    Autenticación (LoginPage)
-        Simula un “JWT” guardado en localStorage.
-        Valida username y password en db.json.
-        Si enabled = false, no deja loguear.
-
-    Usuarios (UsersPage)
+    👥 Usuarios (UsersPage)
     Admin puede:
-        Crear un nuevo usuario (username, password, role, enabled).
+        Crear usuarios (username, password, role, enabled).
         Editar usuarios existentes.
-        Habilitar/Deshabilitar.
-        Cambiar rol (admin ↔ user).
-    User no ve este módulo.
-    Filtro: busca por username.
-
-    Categorías (CategoriesPage)
+        Habilitar/deshabilitar usuarios.
+        Cambiar roles (admin ↔ user).
+    User no puede acceder a este módulo.
+    Filtro: Buscar por username.
+    🗃 Categorías (CategoriesPage)
     Admin puede:
-        Crear, Editar, Eliminar.
-    User solo visualiza la lista.
-    Filtro: busca por name.
+        Crear, editar y eliminar categorías.
+    User solo puede visualizar.
+    Filtro: Buscar por name.
 
-    Productos (ProductsPage)
+    📦 Productos (ProductsPage)
     Admin puede:
-        Crear (con name, categoryId, price, stock).
-        Editar y Eliminar.
-    User solo visualiza.
-        Filtro: busca por name.
+        Crear productos (name, categoryId, price, stock).
+        Editar y eliminar productos.
+    User solo puede visualizar.
+    Filtro: Buscar por name.
 
-Notas sobre Autenticación
-    La autenticación está simulada: se hace un GET a db.json para ver si existe el usuario con esas credenciales.
-    Al “loguear”, se guarda un token ficticio ("fakeJWTToken123") en localStorage.
-    El AuthContext maneja la lógica de handleLogin y handleLogout.
+🔐 Notas sobre Autenticación
+    La autenticación está simulada.
+    Se utiliza un token ficticio (fakeJWTToken123) almacenado en localStorage.
+    AuthContext maneja la lógica de inicio/cierre de sesión.
 
-Despliegue
-    Build de Producción:
-        npm run build
-        Genera carpeta dist/ lista para subir a un hosting estático (Netlify, Vercel, etc.).
-    Subida a Netlify o Vercel:
-        Sube la carpeta dist.
-        Configura que el framework es “React” o “Vite”.
-        No olvides correr JSON Server en un servicio separado (o contar con un backend real).
+🌍 Despliegue
+    Generar Build de Producción:npm run build
+Subir a Hosting:
+    Usa plataformas como Netlify o Vercel.
+    Configura el framework como React o Vite.
 
-
-Autor:  Edwin Torrez
-Correo: at2899743@gmail.com
-Proyecto: https://github.com/edwin08torres/inventario-app/tree/t-dev
-
-Si tienes dudas o problemas, no dudes en escribir. ¡Gracias por probar la aplicación!
+📞 Contacto
+    Autor: Edwin Torrez
+    Correo: at2899743@gmail.com
+    Repositorio: Inventario App
+```
