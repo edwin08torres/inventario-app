@@ -141,7 +141,7 @@ const CategoriesPage = () => {
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Gestión de Categorías</h2>
+      <h2 className="text-2xl font-bold mb-4 text-center">Gestión de Categorías</h2>
 
       {/* Barra de búsqueda */}
       <div className="flex space-x-2 mb-4">
