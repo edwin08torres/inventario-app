@@ -1,10 +1,27 @@
+/* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { AuthContext } from "../../contexts/AuthContext";
 import { toast } from "react-toastify";
 
-const baseURL = "http://localhost:4000";
+const baseURL = "/api/Products";
+
+function Modal({ children, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded relative min-w-[300px]">
+        <button
+          className="absolute top-2 right-2 text-xl font-bold"
+          onClick={onClose}
+        >
+          ✕
+        </button>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 const ProductsPage = () => {
   const { user } = useContext(AuthContext);
@@ -13,14 +30,39 @@ const ProductsPage = () => {
   const [products, setProducts] = useState([]);
 
   const [categories, setCategories] = useState([]);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [search, setSearch] = useState("");
+
   const [form, setForm] = useState({
     name: "",
     categoryId: 0,
     price: 0,
     stock: 0,
   });
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [search, setSearch] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+
+  // Modal
+  const [showModal, setShowModal] = useState(false);
+
+  const totalItems = products.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentData = products.slice(startIndex, endIndex);
+
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+  const prevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
   // Carga inicial
   useEffect(() => {
@@ -30,25 +72,24 @@ const ProductsPage = () => {
 
   const fetchAllProducts = async () => {
     try {
-      const { data } = await axios.get(`${baseURL}/products`);
-      setAllProducts(data);  // Guardas todo
-      setProducts(data);     // Muestras todo
+      const { data } = await axios.get(baseURL);
+      setAllProducts(data);
+      setProducts(data);
+      setCurrentPage(1);
     } catch (error) {
       toast.error("Error al cargar productos");
     }
   };
 
-  // Cargar categorías
   const fetchCategories = async () => {
     try {
-      const { data } = await axios.get(`${baseURL}/categories`);
+      const { data } = await axios.get("/api/categories"); 
       setCategories(data);
     } catch (error) {
       toast.error("Error al cargar categorías");
     }
   };
 
-  // Filtra en memoria (case-insensitive)
   const filterProducts = (term) => {
     if (!term.trim()) {
       toast.warn("Ingresa un término para buscar");
@@ -63,40 +104,58 @@ const ProductsPage = () => {
     } else {
       toast.success("Producto encontrado");
       setProducts(filtered);
+      setCurrentPage(1);
     }
   };
 
-  // Buscar
-  const handleSearchClick = () => {
-    filterProducts(search);
-  };
-
-  const handleClearFilter = () => {
-    setSearch("");
-    setProducts(allProducts); 
-  };
-
-  // OnChange del search
+  // Handlers de búsqueda
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
   };
+  const handleSearchClick = () => {
+    filterProducts(search);
+  };
+  const handleClearFilter = () => {
+    setSearch("");
+    setProducts(allProducts);
+    setCurrentPage(1);
+  };
 
-  // Cancelar edición
+  // Abrir modal (Crear)
+  const openCreateModal = () => {
+    setEditingProduct(null);
+    setForm({ name: "", categoryId: 0, price: 0, stock: 0 });
+    setShowModal(true);
+  };
+
+  // Abrir modal (Editar)
+  const handleEdit = (prod) => {
+    setEditingProduct(prod);
+    setForm({
+      name: prod.name,
+      categoryId: prod.categoryId,
+      price: prod.price,
+      stock: prod.stock,
+    });
+    setShowModal(true);
+  };
+
+  // Cerrar Modal
+  const closeModal = () => {
+    setShowModal(false);
+  };
+
   const handleCancel = () => {
     setEditingProduct(null);
     setForm({ name: "", categoryId: 0, price: 0, stock: 0 });
+    setShowModal(false);
   };
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  // Crear/editar producto
   const handleSubmit = async (e) => {
     e.preventDefault();
     const { name, categoryId, price, stock } = form;
 
-    // Validaciones
+    // Validaciones mínimas
     if (!name.trim() || !categoryId) {
       toast.error("Campos requeridos vacíos");
       return;
@@ -112,16 +171,16 @@ const ProductsPage = () => {
 
     try {
       if (editingProduct) {
-        await axios.put(`${baseURL}/products/${editingProduct.id}`, form);
+        // PUT -> editar
+        await axios.put(`${baseURL}/${editingProduct.id}`, form);
         toast.success("Producto actualizado");
       } else {
-        await axios.post(`${baseURL}/products`, form);
+        // POST -> crear
+        await axios.post(baseURL, form);
         toast.success("Producto creado");
       }
-      // Refrescar la lista
-      await fetchAllProducts(); 
-
-      // Limpia
+      await fetchAllProducts();
+      setShowModal(false);
       setEditingProduct(null);
       setForm({ name: "", categoryId: 0, price: 0, stock: 0 });
     } catch (error) {
@@ -129,28 +188,22 @@ const ProductsPage = () => {
     }
   };
 
-  // Editar
-  const handleEdit = (prod) => {
-    setEditingProduct(prod);
-    setForm({
-      name: prod.name,
-      categoryId: prod.categoryId,
-      price: prod.price,
-      stock: prod.stock,
-    });
-  };
-
-  // Eliminar
   const handleDelete = async (id) => {
     if (!window.confirm("¿Eliminar este producto?")) return;
     try {
-      await axios.delete(`${baseURL}/products/${id}`);
+      await axios.delete(`${baseURL}/${id}`);
       toast.success("Producto eliminado");
       await fetchAllProducts();
     } catch (error) {
       toast.error("Error al eliminar producto");
     }
   };
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  if (!user) return null; 
 
   return (
     <div className="p-6">
@@ -179,7 +232,30 @@ const ProductsPage = () => {
         </button>
       </div>
 
-      {/* Tabla */}
+      <div className="mb-4 flex items-center space-x-2">
+        <label>Items por página:</label>
+        <select
+          value={itemsPerPage}
+          onChange={(e) => {
+            setItemsPerPage(Number(e.target.value));
+            setCurrentPage(1);
+          }}
+        >
+          <option value={5}>5</option>
+          <option value={10}>10</option>
+        </select>
+      </div>
+
+      {/* Botón Crear (solo admin) */}
+      {user?.role === "admin" && (
+        <button
+          onClick={openCreateModal}
+          className="mb-4 px-3 py-1 bg-green-600 text-white rounded"
+        >
+          Crear Producto
+        </button>
+      )}
+
       <table className="min-w-full bg-white rounded shadow mb-8">
         <thead>
           <tr className="border-b">
@@ -192,7 +268,7 @@ const ProductsPage = () => {
           </tr>
         </thead>
         <tbody>
-          {products.map((p) => {
+          {currentData.map((p) => {
             const categoryName =
               categories.find((c) => c.id === p.categoryId)?.name || "";
             return (
@@ -224,9 +300,30 @@ const ProductsPage = () => {
         </tbody>
       </table>
 
-      {/* Form admin */}
-      {user?.role === "admin" && (
-        <div className="max-w-md bg-white p-4 rounded shadow">
+      {/* Botones de paginación */}
+      <div className="flex items-center mb-4 space-x-4">
+        <button
+          onClick={prevPage}
+          disabled={currentPage === 1}
+          className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
+        >
+          Anterior
+        </button>
+        <span>
+          Página {currentPage} de {totalPages}
+        </span>
+        <button
+          onClick={nextPage}
+          disabled={currentPage === totalPages || totalPages === 0}
+          className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
+        >
+          Siguiente
+        </button>
+      </div>
+
+      {/* Modal de Crear/Editar */}
+      {showModal && (
+        <Modal onClose={closeModal}>
           <h3 className="text-xl font-bold mb-4">
             {editingProduct ? "Editar Producto" : "Nuevo Producto"}
           </h3>
@@ -255,7 +352,7 @@ const ProductsPage = () => {
                 className="border w-full px-3 py-2 rounded"
                 required
               >
-                <option value="">Seleccione</option>
+                <option value={0}>Seleccione</option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
@@ -306,7 +403,7 @@ const ProductsPage = () => {
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
     </div>
   );

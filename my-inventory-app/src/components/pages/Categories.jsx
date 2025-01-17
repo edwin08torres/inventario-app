@@ -1,10 +1,27 @@
+/* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
 import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { AuthContext } from "../../contexts/AuthContext";
 import { toast } from "react-toastify";
 
-const baseURL = "http://localhost:4000";
+const baseURL = "/api/categories";
+
+function Modal({ children, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded relative min-w-[300px]">
+        <button 
+          className="absolute top-2 right-2 text-xl font-bold" 
+          onClick={onClose}
+        >
+          ✕
+        </button>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 const CategoriesPage = () => {
   const { user } = useContext(AuthContext);
@@ -12,11 +29,23 @@ const CategoriesPage = () => {
   const [allCategories, setAllCategories] = useState([]);
   const [categories, setCategories] = useState([]);
 
-  // Formulario
   const [form, setForm] = useState({ name: "", description: "" });
   const [editingCategory, setEditingCategory] = useState(null);
 
   const [search, setSearch] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+
+  // Para el modal
+  const [showModal, setShowModal] = useState(false);
+
+  const totalItems = categories.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentData = categories.slice(startIndex, endIndex);
 
   useEffect(() => {
     fetchAllCategories();
@@ -24,13 +53,15 @@ const CategoriesPage = () => {
 
   const fetchAllCategories = async () => {
     try {
-      const { data } = await axios.get(`${baseURL}/categories`);
+      const { data } = await axios.get(baseURL);
       setAllCategories(data);
       setCategories(data);
+      setCurrentPage(1);
     } catch (error) {
       toast.error("Error al cargar categorías");
     }
   };
+
   const filterCategories = (term) => {
     if (!term.trim()) {
       toast.warn("Ingresa un término para buscar");
@@ -46,22 +77,52 @@ const CategoriesPage = () => {
     } else {
       toast.success("Categoría(s) encontrada(s)");
       setCategories(filtered);
+      setCurrentPage(1);
     }
   };
 
+  // Paginación
+  const handleItemsPerPageChange = (e) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1);
+  };
+  const nextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+  const prevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  // Búsqueda
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
   };
-
   const handleSearchClick = () => {
     filterCategories(search);
   };
-
   const handleClearFilter = () => {
     setSearch("");
     setCategories(allCategories);
+    setCurrentPage(1);
   };
 
+  const openCreateModal = () => {
+    setEditingCategory(null);
+    setForm({ name: "", description: "" });
+    setShowModal(true);
+  };
+
+  const handleEdit = (category) => {
+    setEditingCategory(category);
+    setForm({ name: category.name, description: category.description });
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+  };
+
+  // Manejo de form
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -69,47 +130,38 @@ const CategoriesPage = () => {
   const handleCancel = () => {
     setEditingCategory(null);
     setForm({ name: "", description: "" });
+    setShowModal(false);
   };
 
-  // Crear / Actualizar categoría
+  const handleDelete = async (id) => {
+    if (!window.confirm("¿Eliminar esta categoría?")) return;
+    try {
+      await axios.delete(`${baseURL}/${id}`);
+      toast.success("Categoría eliminada");
+      fetchAllCategories();
+    } catch (error) {
+      toast.error("Error al eliminar la categoría");
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       if (editingCategory) {
         // Editar
-        await axios.put(`${baseURL}/categories/${editingCategory.id}`, form);
+        await axios.put(`${baseURL}/${editingCategory.id}`, form);
         toast.success("Categoría actualizada");
       } else {
         // Crear
-        await axios.post(`${baseURL}/categories`, form);
+        await axios.post(baseURL, form);
         toast.success("Categoría creada");
       }
-
-      await fetchAllCategories(); 
-
+      fetchAllCategories();
+      setShowModal(false);
       setEditingCategory(null);
       setForm({ name: "", description: "" });
     } catch (error) {
       toast.error("Error al guardar la categoría");
-    }
-  };
-
-  const handleEdit = (category) => {
-    setEditingCategory(category);
-    setForm({ name: category.name, description: category.description });
-  };
-
-  // Eliminar
-  const handleDelete = async (id) => {
-    if (!window.confirm("¿Eliminar esta categoría?")) return;
-    try {
-      await axios.delete(`${baseURL}/categories/${id}`);
-      toast.success("Categoría eliminada");
-
-      await fetchAllCategories();
-      // filterCategories(search);
-    } catch (error) {
-      toast.error("Error al eliminar la categoría");
     }
   };
 
@@ -140,7 +192,25 @@ const CategoriesPage = () => {
         </button>
       </div>
 
-      {/* Tabla de categorías */}
+      <div className="mb-4 flex items-center space-x-2">
+        <label>Items por página:</label>
+        <select value={itemsPerPage} onChange={handleItemsPerPageChange}>
+          <option value={5}>5</option>
+          <option value={10}>10</option>
+        </select>
+      </div>
+
+      {/* Botón "Crear" (solo si admin) */}
+      {user?.role === "admin" && (
+        <button
+          onClick={openCreateModal}
+          className="mb-4 px-3 py-1 bg-green-600 text-white rounded"
+        >
+          Crear Categoría
+        </button>
+      )}
+
+      {/* Tabla de Categorías */}
       <table className="min-w-full bg-white rounded shadow mb-8">
         <thead>
           <tr className="border-b">
@@ -151,7 +221,7 @@ const CategoriesPage = () => {
           </tr>
         </thead>
         <tbody>
-          {categories.map((cat) => (
+          {currentData.map((cat) => (
             <tr key={cat.id} className="border-b hover:bg-gray-50">
               <td className="px-4 py-2">{cat.id}</td>
               <td className="px-4 py-2">{cat.name}</td>
@@ -177,9 +247,30 @@ const CategoriesPage = () => {
         </tbody>
       </table>
 
-      {/* Formulario para crear / editar, solo para admin */}
-      {user?.role === "admin" && (
-        <div className="max-w-md bg-white p-4 rounded shadow">
+      {/* Controles de paginación */}
+      <div className="flex items-center mb-4 space-x-4">
+        <button
+          onClick={prevPage}
+          disabled={currentPage === 1}
+          className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
+        >
+          Anterior
+        </button>
+        <span>
+          Página {currentPage} de {totalPages}
+        </span>
+        <button
+          onClick={nextPage}
+          disabled={currentPage === totalPages || totalPages === 0}
+          className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
+        >
+          Siguiente
+        </button>
+      </div>
+
+      {/* Modal de Crear/Editar */}
+      {showModal && (
+        <Modal onClose={closeModal}>
           <h3 className="text-xl font-bold mb-4">
             {editingCategory ? "Editar Categoría" : "Nueva Categoría"}
           </h3>
@@ -225,7 +316,7 @@ const CategoriesPage = () => {
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
     </div>
   );

@@ -1,10 +1,27 @@
+/* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
 import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { AuthContext } from "../../contexts/AuthContext";
 
-const baseURL = "http://localhost:4000";
+const baseURL = "/api/users";
+
+function Modal({ children, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded relative min-w-[300px]">
+        <button
+          className="absolute top-2 right-2 text-xl font-bold"
+          onClick={onClose}
+        >
+          ✕
+        </button>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 const UsersPage = () => {
   const { user: loggedUser } = useContext(AuthContext);
@@ -12,7 +29,7 @@ const UsersPage = () => {
   const [allUsers, setAllUsers] = useState([]);
   const [users, setUsers] = useState([]);
 
-  // Formulario
+  // Form
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState({
     username: "",
@@ -24,22 +41,44 @@ const UsersPage = () => {
   // Búsqueda
   const [search, setSearch] = useState("");
 
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+
+  // Modal
+  const [showModal, setShowModal] = useState(false);
+
+  // Cálculo de paginación local
+  const totalItems = users.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentData = users.slice(startIndex, endIndex);
+
+  const nextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+  const prevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  // Cargar todos los usuarios
+  const fetchAllUsers = async () => {
+    try {
+      const { data } = await axios.get(baseURL);
+      setAllUsers(data);
+      setUsers(data);
+      setCurrentPage(1);
+    } catch (error) {
+      toast.error("Error al cargar usuarios");
+    }
+  };
+
   useEffect(() => {
     if (loggedUser?.role === "admin") {
       fetchAllUsers();
     }
   }, [loggedUser]);
-
-  // Carga todos los usuarios desde JSON Server
-  const fetchAllUsers = async () => {
-    try {
-      const { data } = await axios.get(`${baseURL}/users`);
-      setAllUsers(data);  
-      setUsers(data);    
-    } catch (error) {
-      toast.error("Error al cargar usuarios");
-    }
-  };
 
   const filterUsers = (term) => {
     if (!term.trim()) {
@@ -55,29 +94,26 @@ const UsersPage = () => {
     } else {
       toast.success("Usuario(s) encontrado(s)");
       setUsers(filtered);
+      setCurrentPage(1);
     }
   };
 
-  // Botón "Buscar"
-  const handleSearchClick = () => {
-    filterUsers(search);
-  };
-
-  // Botón "Borrar Filtro"
-  const handleClearFilter = () => {
-    setSearch("");
-    setUsers(allUsers);  
-  };
-
-  // Cada vez que el input de búsqueda cambie
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
   };
+  const handleSearchClick = () => {
+    filterUsers(search);
+  };
+  const handleClearFilter = () => {
+    setSearch("");
+    setUsers(allUsers);
+    setCurrentPage(1);
+  };
 
-  // Habilitar/Deshabilitar usuario
+  // Habilitar/Deshabilitar
   const toggleEnableUser = async (id, newStatus) => {
     try {
-      await axios.patch(`${baseURL}/users/${id}`, { enabled: newStatus });
+      await axios.patch(`${baseURL}/${id}`, { enabled: newStatus });
       toast.success(`Usuario ${newStatus ? "habilitado" : "deshabilitado"}`);
       fetchAllUsers();
     } catch (error) {
@@ -85,18 +121,43 @@ const UsersPage = () => {
     }
   };
 
-  // Verificar si es admin
-  if (loggedUser?.role !== "admin") {
-    return <div className="p-6">No tienes permisos para ver esta sección.</div>;
-  }
+  // Abrir modal para Crear
+  const openCreateModal = () => {
+    setEditingUser(null);
+    setForm({ username: "", password: "", role: "user", enabled: true });
+    setShowModal(true);
+  };
 
-  // Crear o editar un usuario
+  // Abrir modal para Editar
+  const handleEdit = (u) => {
+    setEditingUser(u);
+    setForm({
+      username: u.username,
+      password: u.password,
+      role: u.role,
+      enabled: u.enabled,
+    });
+    setShowModal(true);
+  };
+
+  // Cerrar modal
+  const closeModal = () => {
+    setShowModal(false);
+  };
+
+  const handleCancel = () => {
+    setEditingUser(null);
+    setForm({ username: "", password: "", role: "user", enabled: true });
+    setShowModal(false);
+  };
+
+  // Guardar cambios
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       if (editingUser) {
         // Editar
-        await axios.put(`${baseURL}/users/${editingUser.id}`, {
+        await axios.put(`${baseURL}/${editingUser.id}`, {
           username: form.username,
           password: form.password,
           role: form.role,
@@ -105,7 +166,7 @@ const UsersPage = () => {
         toast.success("Usuario actualizado");
       } else {
         // Crear
-        await axios.post(`${baseURL}/users`, {
+        await axios.post(baseURL, {
           username: form.username,
           password: form.password,
           role: form.role,
@@ -113,9 +174,8 @@ const UsersPage = () => {
         });
         toast.success("Usuario creado");
       }
-      await fetchAllUsers();
-
-      // Limpia
+      fetchAllUsers();
+      setShowModal(false);
       setEditingUser(null);
       setForm({ username: "", password: "", role: "user", enabled: true });
     } catch (error) {
@@ -123,7 +183,6 @@ const UsersPage = () => {
     }
   };
 
-  // Manejo de inputs en el form
   const handleFormChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (type === "checkbox") {
@@ -133,22 +192,9 @@ const UsersPage = () => {
     }
   };
 
-  // Cancelar edición
-  const handleCancel = () => {
-    setEditingUser(null);
-    setForm({ username: "", password: "", role: "user", enabled: true });
-  };
-
-  // Cargar datos para editar
-  const handleEdit = (u) => {
-    setEditingUser(u);
-    setForm({
-      username: u.username,
-      password: u.password,
-      role: u.role,
-      enabled: u.enabled,
-    });
-  };
+  if (loggedUser?.role !== "admin") {
+    return <div className="p-6">No tienes permisos para ver esta sección.</div>;
+  }
 
   return (
     <div className="p-6">
@@ -177,7 +223,28 @@ const UsersPage = () => {
         </button>
       </div>
 
-      {/* Tabla de usuarios */}
+      <div className="mb-4 flex items-center space-x-2">
+        <label>Items por página:</label>
+        <select
+          value={itemsPerPage}
+          onChange={(e) => {
+            setItemsPerPage(Number(e.target.value));
+            setCurrentPage(1);
+          }}
+        >
+          <option value={5}>5</option>
+          <option value={10}>10</option>
+        </select>
+      </div>
+
+      {/* Botón Crear */}
+      <button
+        onClick={openCreateModal}
+        className="mb-4 px-3 py-1 bg-green-600 text-white rounded"
+      >
+        Crear Usuario
+      </button>
+
       <table className="min-w-full bg-white rounded shadow overflow-x-auto text-sm sm:text-base">
         <thead>
           <tr className="border-b">
@@ -189,7 +256,7 @@ const UsersPage = () => {
           </tr>
         </thead>
         <tbody>
-          {users.map((u) => (
+          {currentData.map((u) => (
             <tr key={u.id} className="border-b hover:bg-gray-50">
               <td className="px-4 py-2">{u.id}</td>
               <td className="px-4 py-2">{u.username}</td>
@@ -198,7 +265,6 @@ const UsersPage = () => {
                 {u.enabled ? "Habilitado" : "Deshabilitado"}
               </td>
               <td className="px-4 py-2">
-                {/* Habilitar/Deshabilitar */}
                 <button
                   onClick={() => toggleEnableUser(u.id, !u.enabled)}
                   className={`px-2 py-1 rounded mr-2 ${
@@ -207,7 +273,7 @@ const UsersPage = () => {
                 >
                   {u.enabled ? "Deshabilitar" : "Habilitar"}
                 </button>
-                
+
                 {/* Editar */}
                 <button
                   onClick={() => handleEdit(u)}
@@ -221,77 +287,99 @@ const UsersPage = () => {
         </tbody>
       </table>
 
-      {/* Form para crear/editar usuario */}
-      <div className="max-w-md bg-white p-4 rounded shadow mt-6">
-        <h3 className="text-xl font-bold mb-4">
-          {editingUser ? "Editar Usuario" : "Nuevo Usuario"}
-        </h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block mb-1 font-medium text-gray-700">
-              Nombre de Usuario
-            </label>
-            <input
-              type="text"
-              name="username"
-              value={form.username}
-              onChange={handleFormChange}
-              className="border w-full px-3 py-2 rounded"
-              required
-            />
-          </div>
-          <div>
-            <label className="block mb-1 font-medium text-gray-700">
-              Contraseña
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleFormChange}
-              className="border w-full px-3 py-2 rounded"
-              required
-            />
-          </div>
-          <div>
-            <label className="block mb-1 font-medium text-gray-700">Rol</label>
-            <select
-              name="role"
-              value={form.role}
-              onChange={handleFormChange}
-              className="border w-full px-3 py-2 rounded"
-              required
-            >
-              <option value="admin">Admin</option>
-              <option value="user">User</option>
-            </select>
-          </div>
-          <div className="flex items-center space-x-2">
-            <label className="font-medium text-gray-700">Habilitado</label>
-            <input
-              type="checkbox"
-              name="enabled"
-              checked={form.enabled}
-              onChange={handleFormChange}
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded"
-            >
-              {editingUser ? "Actualizar" : "Crear"}
-            </button>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-4 py-2 bg-gray-500 text-white rounded"
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
+      <div className="flex items-center mt-4 space-x-4">
+        <button
+          onClick={prevPage}
+          disabled={currentPage === 1}
+          className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
+        >
+          Anterior
+        </button>
+        <span>
+          Página {currentPage} de {totalPages}
+        </span>
+        <button
+          onClick={nextPage}
+          disabled={currentPage === totalPages || totalPages === 0}
+          className="px-3 py-1 bg-gray-300 rounded disabled:opacity-50"
+        >
+          Siguiente
+        </button>
       </div>
+
+      {/* Modal de Crear/Editar */}
+      {showModal && (
+        <Modal onClose={closeModal}>
+          <h3 className="text-xl font-bold mb-4">
+            {editingUser ? "Editar Usuario" : "Nuevo Usuario"}
+          </h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block mb-1 font-medium text-gray-700">
+                Nombre de Usuario
+              </label>
+              <input
+                type="text"
+                name="username"
+                value={form.username}
+                onChange={handleFormChange}
+                className="border w-full px-3 py-2 rounded"
+                required
+              />
+            </div>
+            <div>
+              <label className="block mb-1 font-medium text-gray-700">
+                Contraseña
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={form.password}
+                onChange={handleFormChange}
+                className="border w-full px-3 py-2 rounded"
+                required
+              />
+            </div>
+            <div>
+              <label className="block mb-1 font-medium text-gray-700">Rol</label>
+              <select
+                name="role"
+                value={form.role}
+                onChange={handleFormChange}
+                className="border w-full px-3 py-2 rounded"
+                required
+              >
+                <option value="admin">Admin</option>
+                <option value="user">User</option>
+              </select>
+            </div>
+            <div className="flex items-center space-x-2">
+              <label className="font-medium text-gray-700">Habilitado</label>
+              <input
+                type="checkbox"
+                name="enabled"
+                checked={form.enabled}
+                onChange={handleFormChange}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="px-4 py-2 bg-green-600 text-white rounded"
+              >
+                {editingUser ? "Actualizar" : "Crear"}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="px-4 py-2 bg-gray-500 text-white rounded"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 };
